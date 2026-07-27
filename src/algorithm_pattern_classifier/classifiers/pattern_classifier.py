@@ -52,9 +52,25 @@ class PatternClassifier(BaseClassifier):
                 # Robustly proceed if an individual detector raises an error
                 continue
 
-        # Handle ties/overlaps: sliding-window is a specific subset of two-pointer.
-        # If both are detected and sliding-window has equal or higher confidence,
-        # suppress the generic two-pointer result.
+        # Handle ties/overlaps:
+        # 1. If dynamic-programming is detected, it is highly specific and suppresses
+        #    sliding-window and two-pointer.
+        has_dp = any(r.pattern == AlgorithmPattern.DYNAMIC_PROGRAMMING for r in raw_results)
+        if has_dp:
+            dp_results = [
+                r for r in raw_results if r.pattern == AlgorithmPattern.DYNAMIC_PROGRAMMING
+            ]
+            max_dp_conf = max(r.confidence_score for r in dp_results)
+            if max_dp_conf >= 0.5:
+                raw_results = [
+                    r
+                    for r in raw_results
+                    if r.pattern
+                    not in (AlgorithmPattern.SLIDING_WINDOW, AlgorithmPattern.TWO_POINTER)
+                ]
+
+        # 2. If sliding-window is detected and has equal or higher confidence,
+        #    suppress the generic two-pointer result.
         has_sliding_window = any(r.pattern == AlgorithmPattern.SLIDING_WINDOW for r in raw_results)
         if has_sliding_window:
             sw_results = [r for r in raw_results if r.pattern == AlgorithmPattern.SLIDING_WINDOW]
