@@ -1,12 +1,12 @@
 import ast
 
 from algorithm_pattern_classifier.detectors.sliding_window import SlidingWindowDetector
-from algorithm_pattern_classifier.detectors.two_pointer import TwoPointerDetector
+from algorithm_pattern_classifier.detectors.two_pointers import TwoPointersDetector
 
 
 def test_two_pointer_detector_positives() -> None:
-    """Test TwoPointerDetector flags actual two-pointer implementations."""
-    detector = TwoPointerDetector()
+    """Test TwoPointersDetector flags actual two-pointer implementations."""
+    detector = TwoPointersDetector()
 
     # Case 1: Two Sum reference implementation
     two_sum_code = (
@@ -31,8 +31,8 @@ def test_two_pointer_detector_positives() -> None:
 
 
 def test_two_pointer_detector_negatives() -> None:
-    """Test TwoPointerDetector does not flag near-misses or simple linear scans."""
-    detector = TwoPointerDetector()
+    """Test TwoPointersDetector does not flag near-misses or simple linear scans."""
+    detector = TwoPointersDetector()
 
     # Case 1: Single pointer linear scan
     linear_scan_code = (

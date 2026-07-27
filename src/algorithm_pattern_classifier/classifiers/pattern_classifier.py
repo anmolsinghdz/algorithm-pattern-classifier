@@ -2,7 +2,7 @@ import ast
 
 from algorithm_pattern_classifier.detectors.dynamic_programming import DynamicProgrammingDetector
 from algorithm_pattern_classifier.detectors.sliding_window import SlidingWindowDetector
-from algorithm_pattern_classifier.detectors.two_pointer import TwoPointerDetector
+from algorithm_pattern_classifier.detectors.two_pointers import TwoPointersDetector
 from algorithm_pattern_classifier.interfaces.classifier import BaseClassifier
 from algorithm_pattern_classifier.interfaces.detector import BaseDetector
 from algorithm_pattern_classifier.models.patterns import AlgorithmPattern, PatternMatch
@@ -16,11 +16,11 @@ class PatternClassifier(BaseClassifier):
 
         Args:
             detectors: A list of detectors. If None, defaults to registering
-                       TwoPointerDetector, SlidingWindowDetector, and DynamicProgrammingDetector.
+                       TwoPointersDetector, SlidingWindowDetector, and DynamicProgrammingDetector.
         """
         if detectors is None:
             self.detectors: list[BaseDetector] = [
-                TwoPointerDetector(),
+                TwoPointersDetector(),
                 SlidingWindowDetector(),
                 DynamicProgrammingDetector(),
             ]
