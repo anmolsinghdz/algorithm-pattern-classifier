@@ -1,3 +1,5 @@
+import ast
+
 from algorithm_pattern_classifier.detectors.sliding_window import SlidingWindowDetector
 from algorithm_pattern_classifier.detectors.two_pointer import TwoPointerDetector
 
@@ -15,16 +17,17 @@ def test_two_pointer_detector_positives() -> None:
         "        current = arr[left] + arr[right]\n"
         "        if current == target:\n"
         "            return [left, right]\n"
-        "        elif current < target:\n"
+        "        if current < target:\n"
         "            left += 1\n"
         "        else:\n"
         "            right -= 1\n"
         "    return []\n"
     )
-    result = detector.detect(two_sum_code)
-    assert result.confidence_score > 0.8
-    assert "left" in result.supporting_evidence[0]
-    assert "right" in result.supporting_evidence[0]
+    result = detector.detect(ast.parse(two_sum_code))
+    assert result is not None
+    assert result.confidence > 0.8
+    assert "left" in result.evidence[0]
+    assert "right" in result.evidence[0]
 
 
 def test_two_pointer_detector_negatives() -> None:
@@ -39,8 +42,8 @@ def test_two_pointer_detector_negatives() -> None:
         "            return i\n"
         "    return -1\n"
     )
-    result = detector.detect(linear_scan_code)
-    assert result.confidence_score == 0.0
+    result = detector.detect(ast.parse(linear_scan_code))
+    assert result is None
 
     # Case 2: Near-miss (loop condition compares two variables, but only one is updated)
     single_update_code = (
@@ -51,8 +54,8 @@ def test_two_pointer_detector_negatives() -> None:
         "        print(arr[i])\n"
         "        i += 1\n"
     )
-    result = detector.detect(single_update_code)
-    assert result.confidence_score == 0.0
+    result = detector.detect(ast.parse(single_update_code))
+    assert result is None
 
     # Case 3: Two independent loops
     two_loops_code = (
@@ -62,8 +65,8 @@ def test_two_pointer_detector_negatives() -> None:
         "    for j in range(len(arr)):\n"
         "        pass\n"
     )
-    result = detector.detect(two_loops_code)
-    assert result.confidence_score == 0.0
+    result = detector.detect(ast.parse(two_loops_code))
+    assert result is None
 
 
 def test_sliding_window_detector_positives() -> None:
@@ -83,10 +86,11 @@ def test_sliding_window_detector_positives() -> None:
         "        max_len = max(max_len, end - start + 1)\n"
         "    return max_len\n"
     )
-    result = detector.detect(longest_substring_code)
-    assert result.confidence_score > 0.8
-    assert "end" in result.supporting_evidence[0]
-    assert "start" in result.supporting_evidence[0]
+    result = detector.detect(ast.parse(longest_substring_code))
+    assert result is not None
+    assert result.confidence > 0.8
+    assert "end" in result.evidence[0]
+    assert "start" in result.evidence[0]
 
 
 def test_sliding_window_detector_negatives() -> None:
@@ -101,8 +105,8 @@ def test_sliding_window_detector_negatives() -> None:
         "            return i\n"
         "    return -1\n"
     )
-    result = detector.detect(linear_scan_code)
-    assert result.confidence_score == 0.0
+    result = detector.detect(ast.parse(linear_scan_code))
+    assert result is None
 
     # Case 2: Nested loops that are not sliding window (e.g. bubble sort)
     bubble_sort_code = (
@@ -113,5 +117,5 @@ def test_sliding_window_detector_negatives() -> None:
         "            if arr[j] > arr[j + 1]:\n"
         "                arr[j], arr[j + 1] = arr[j + 1], arr[j]\n"
     )
-    result = detector.detect(bubble_sort_code)
-    assert result.confidence_score == 0.0
+    result = detector.detect(ast.parse(bubble_sort_code))
+    assert result is None
