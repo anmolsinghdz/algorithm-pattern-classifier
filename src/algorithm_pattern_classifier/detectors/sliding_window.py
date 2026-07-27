@@ -111,11 +111,29 @@ class SlidingWindowDetector(BaseDetector):
                                 assert lower_id is not None
                                 self.start_vars_in_subtraction.add(lower_id)
                         # Track indexing access to detect joint subscripting
-                        elif isinstance(sub_node.value, ast.Name) and isinstance(
-                            sub_node.slice, ast.Name
-                        ):
+                        elif isinstance(sub_node.value, ast.Name):
                             seq_name = sub_node.value.id
-                            self.subscript_vars.setdefault(seq_name, set()).add(sub_node.slice.id)
+                            if isinstance(sub_node.slice, ast.Name):
+                                self.subscript_vars.setdefault(seq_name, set()).add(
+                                    sub_node.slice.id
+                                )
+                            elif (
+                                isinstance(sub_node.slice, ast.BinOp)
+                                and isinstance(sub_node.slice.op, ast.Sub)
+                                and isinstance(sub_node.slice.left, ast.Name)
+                                and sub_node.slice.left.id == end_var
+                            ):
+                                right = sub_node.slice.right
+                                if isinstance(right, ast.Name):
+                                    self.subscript_vars.setdefault(seq_name, set()).add(
+                                        f"sub-{right.id}"
+                                    )
+                                elif isinstance(right, ast.Constant) and isinstance(
+                                    right.value, (int, str)
+                                ):
+                                    self.subscript_vars.setdefault(seq_name, set()).add(
+                                        f"sub-{right.value}"
+                                    )
                         self.generic_visit(sub_node)
 
                 metric_visitor = MetricVisitor()
@@ -130,10 +148,18 @@ class SlidingWindowDetector(BaseDetector):
                 if not has_window_metric:
                     for _seq, indices in metric_visitor.subscript_vars.items():
                         if end_var in indices:
+                            # Check dynamic start variables (variables updated in the loop)
                             common_starts = indices.intersection(updated_vars)
                             if common_starts:
                                 has_window_metric = True
                                 detected_start_var = next(iter(common_starts))
+                                break
+                            # Check fixed window size subtraction elements (e.g. sub-k or sub-3)
+                            sub_starts = [idx for idx in indices if idx.startswith("sub-")]
+                            if sub_starts:
+                                has_window_metric = True
+                                # Extract variable name / constant value from prefix
+                                detected_start_var = sub_starts[0].split("-", 1)[1]
                                 break
 
                 if has_window_metric and detected_start_var:
@@ -141,7 +167,7 @@ class SlidingWindowDetector(BaseDetector):
                     self.confidence = 0.95
                     self.evidence.append(
                         f"Line {node.lineno}: found sliding window loop with "
-                        f"expansion pointer '{end_var}' and boundary pointer "
+                        f"expansion pointer '{end_var}' and boundary offset/pointer "
                         f"'{detected_start_var}'."
                     )
 
