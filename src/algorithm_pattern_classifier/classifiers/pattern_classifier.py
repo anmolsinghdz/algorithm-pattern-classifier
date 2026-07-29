@@ -8,6 +8,7 @@ from algorithm_pattern_classifier.detectors.two_pointers import TwoPointersDetec
 from algorithm_pattern_classifier.interfaces.classifier import BaseClassifier
 from algorithm_pattern_classifier.interfaces.detector import BaseDetector
 from algorithm_pattern_classifier.models.patterns import AlgorithmPattern, PatternMatch
+from algorithm_pattern_classifier.utils.ast_normalizer import ASTNormalizer
 
 
 class PatternClassifier(BaseClassifier):
@@ -42,6 +43,8 @@ class PatternClassifier(BaseClassifier):
         """
         try:
             ast_tree = ast.parse(source_code)
+            ast_tree = ASTNormalizer().visit(ast_tree)
+            ast.fix_missing_locations(ast_tree)
         except SyntaxError:
             return []
 
