@@ -1,4 +1,5 @@
 import ast
+import logging
 
 from algorithm_pattern_classifier.detectors.dynamic_programming import DynamicProgrammingDetector
 from algorithm_pattern_classifier.detectors.sliding_window import SlidingWindowDetector
@@ -6,6 +7,8 @@ from algorithm_pattern_classifier.detectors.two_pointer import TwoPointerDetecto
 from algorithm_pattern_classifier.interfaces.classifier import BaseClassifier
 from algorithm_pattern_classifier.interfaces.detector import BaseDetector
 from algorithm_pattern_classifier.models.patterns import AlgorithmPattern, PatternMatch
+
+logger = logging.getLogger(__name__)
 
 
 class PatternClassifier(BaseClassifier):
@@ -19,7 +22,7 @@ class PatternClassifier(BaseClassifier):
                        TwoPointerDetector, SlidingWindowDetector, and DynamicProgrammingDetector.
         """
         if detectors is None:
-            self.detectors: list[BaseDetector] = [
+            self.detectors = [
                 TwoPointerDetector(),
                 SlidingWindowDetector(),
                 DynamicProgrammingDetector(),
@@ -36,10 +39,7 @@ class PatternClassifier(BaseClassifier):
         Returns:
             A list of PatternMatch objects ranked by confidence.
         """
-        try:
-            ast_tree = ast.parse(source_code)
-        except SyntaxError:
-            return []
+        ast_tree = ast.parse(source_code)
 
         raw_results: list[PatternMatch] = []
         for detector in self.detectors:
@@ -48,7 +48,7 @@ class PatternClassifier(BaseClassifier):
                 if res is not None and res.confidence > 0.0:
                     raw_results.append(res)
             except Exception:
-                # Robustly proceed if an individual detector raises an error
+                logger.exception("Detector %s failed", type(detector).__name__)
                 continue
 
         # Handle ties/overlaps:
@@ -83,6 +83,5 @@ class PatternClassifier(BaseClassifier):
         # Rank results by descending confidence score, then by pattern value for tie-breaking
         return sorted(
             raw_results,
-            key=lambda r: (r.confidence, r.pattern.value),
-            reverse=True,
+            key=lambda r: (-r.confidence, r.pattern.value),
         )
