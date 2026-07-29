@@ -86,3 +86,17 @@ def test_classifier_overlap_handling() -> None:
     assert len(results2) == 2
     assert results2[0].pattern == AlgorithmPattern.TWO_POINTERS
     assert results2[1].pattern == AlgorithmPattern.SLIDING_WINDOW
+
+
+def test_classifier_dp_suppresses_dfs() -> None:
+    """Test that dynamic programming suppresses DFS when confidence is high enough."""
+    detectors: list[BaseDetector] = [
+        MockDetector(AlgorithmPattern.DYNAMIC_PROGRAMMING, 0.8),
+        MockDetector(AlgorithmPattern.DFS, 0.9),
+    ]
+    classifier = PatternClassifier(detectors=detectors)
+    results = classifier.classify("pass")
+
+    # DFS should be suppressed since DP confidence >= 0.5
+    assert len(results) == 1
+    assert results[0].pattern == AlgorithmPattern.DYNAMIC_PROGRAMMING
