@@ -1,5 +1,6 @@
 import ast
 
+from algorithm_pattern_classifier.detectors.backtracking import BacktrackingDetector
 from algorithm_pattern_classifier.detectors.bfs import BFSDetector
 from algorithm_pattern_classifier.detectors.dfs import DFSDetector
 from algorithm_pattern_classifier.detectors.dynamic_programming import DynamicProgrammingDetector
@@ -22,12 +23,13 @@ class PatternClassifier(BaseClassifier):
                        TwoPointersDetector, SlidingWindowDetector, and DynamicProgrammingDetector.
         """
         if detectors is None:
-            self.detectors: list[BaseDetector] = [
+            self.detectors = [
                 TwoPointersDetector(),
                 SlidingWindowDetector(),
                 DynamicProgrammingDetector(),
                 BFSDetector(),
                 DFSDetector(),
+                BacktrackingDetector(),
             ]
         else:
             self.detectors = detectors
@@ -90,6 +92,16 @@ class PatternClassifier(BaseClassifier):
                 for r in raw_results
                 if not (r.pattern == AlgorithmPattern.TWO_POINTERS and r.confidence <= max_sw_conf)
             ]
+
+        # 3. If backtracking is detected, suppress the generic DFS results.
+        has_backtracking = any(r.pattern == AlgorithmPattern.BACKTRACKING for r in raw_results)
+        if has_backtracking:
+            backtrack_results = [
+                r for r in raw_results if r.pattern == AlgorithmPattern.BACKTRACKING
+            ]
+            max_bt_conf = max(r.confidence for r in backtrack_results)
+            if max_bt_conf >= 0.5:
+                raw_results = [r for r in raw_results if r.pattern != AlgorithmPattern.DFS]
 
         # Rank results by descending confidence score, then by pattern value for tie-breaking
         return sorted(
