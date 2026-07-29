@@ -1,5 +1,6 @@
 import ast
 
+from algorithm_pattern_classifier.classifiers.arbitrator import PatternArbitrator
 from algorithm_pattern_classifier.detectors.backtracking import BacktrackingDetector
 from algorithm_pattern_classifier.detectors.bfs import BFSDetector
 from algorithm_pattern_classifier.detectors.dfs import DFSDetector
@@ -8,19 +9,23 @@ from algorithm_pattern_classifier.detectors.sliding_window import SlidingWindowD
 from algorithm_pattern_classifier.detectors.two_pointers import TwoPointersDetector
 from algorithm_pattern_classifier.interfaces.classifier import BaseClassifier
 from algorithm_pattern_classifier.interfaces.detector import BaseDetector
-from algorithm_pattern_classifier.models.patterns import AlgorithmPattern, PatternMatch
+from algorithm_pattern_classifier.models.patterns import PatternMatch
 from algorithm_pattern_classifier.utils.ast_normalizer import ASTNormalizer
 
 
 class PatternClassifier(BaseClassifier):
     """Aggregates and ranks algorithmic design pattern detections."""
 
-    def __init__(self, detectors: list[BaseDetector] | None = None) -> None:
-        """Initialize the classifier with optional custom detectors.
+    def __init__(
+        self,
+        detectors: list[BaseDetector] | None = None,
+        arbitrator: PatternArbitrator | None = None,
+    ) -> None:
+        """Initialize the classifier with optional custom detectors and arbitrator.
 
         Args:
-            detectors: A list of detectors. If None, defaults to registering
-                       TwoPointersDetector, SlidingWindowDetector, and DynamicProgrammingDetector.
+            detectors: A list of detectors. If None, defaults to registering default detectors.
+            arbitrator: An arbitrator instance. If None, defaults to PatternArbitrator.
         """
         if detectors is None:
             self.detectors = [
@@ -33,6 +38,8 @@ class PatternClassifier(BaseClassifier):
             ]
         else:
             self.detectors = detectors
+
+        self.arbitrator = arbitrator or PatternArbitrator()
 
     def classify(self, source_code: str) -> list[PatternMatch]:
         """Classify and rank the algorithmic design patterns found in the source code.
@@ -60,52 +67,4 @@ class PatternClassifier(BaseClassifier):
                 # Robustly proceed if an individual detector raises an error
                 continue
 
-        # Handle ties/overlaps:
-        # 1. If dynamic-programming is detected, it is highly specific and suppresses
-        #    sliding-window and two-pointer.
-        has_dp = any(r.pattern == AlgorithmPattern.DYNAMIC_PROGRAMMING for r in raw_results)
-        if has_dp:
-            dp_results = [
-                r for r in raw_results if r.pattern == AlgorithmPattern.DYNAMIC_PROGRAMMING
-            ]
-            max_dp_conf = max(r.confidence for r in dp_results)
-            if max_dp_conf >= 0.5:
-                raw_results = [
-                    r
-                    for r in raw_results
-                    if r.pattern
-                    not in (
-                        AlgorithmPattern.SLIDING_WINDOW,
-                        AlgorithmPattern.TWO_POINTERS,
-                        AlgorithmPattern.DFS,
-                    )
-                ]
-
-        # 2. If sliding-window is detected and has equal or higher confidence,
-        #    suppress the generic two-pointer result.
-        has_sliding_window = any(r.pattern == AlgorithmPattern.SLIDING_WINDOW for r in raw_results)
-        if has_sliding_window:
-            sw_results = [r for r in raw_results if r.pattern == AlgorithmPattern.SLIDING_WINDOW]
-            max_sw_conf = max(r.confidence for r in sw_results)
-            raw_results = [
-                r
-                for r in raw_results
-                if not (r.pattern == AlgorithmPattern.TWO_POINTERS and r.confidence <= max_sw_conf)
-            ]
-
-        # 3. If backtracking is detected, suppress the generic DFS results.
-        has_backtracking = any(r.pattern == AlgorithmPattern.BACKTRACKING for r in raw_results)
-        if has_backtracking:
-            backtrack_results = [
-                r for r in raw_results if r.pattern == AlgorithmPattern.BACKTRACKING
-            ]
-            max_bt_conf = max(r.confidence for r in backtrack_results)
-            if max_bt_conf >= 0.5:
-                raw_results = [r for r in raw_results if r.pattern != AlgorithmPattern.DFS]
-
-        # Rank results by descending confidence score, then by pattern value for tie-breaking
-        return sorted(
-            raw_results,
-            key=lambda r: (r.confidence, r.pattern.value),
-            reverse=True,
-        )
+        return self.arbitrator.arbitrate(raw_results)
