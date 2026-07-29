@@ -29,6 +29,21 @@ def test_two_pointer_detector_positives() -> None:
     assert "left" in result.evidence[0]
     assert "right" in result.evidence[0]
 
+    # Case 2: Tuple unpacking implementation
+    tuple_unpacking_code = (
+        "def two_sum_unpack(arr, target):\n"
+        "    left, right = 0, len(arr) - 1\n"
+        "    while left < right:\n"
+        "        val = arr[left] + arr[right]\n"
+        "        if val == target:\n"
+        "            return True\n"
+        "        left, right = left + 1, right - 1\n"
+        "    return False\n"
+    )
+    result2 = detector.detect(ast.parse(tuple_unpacking_code))
+    assert result2 is not None
+    assert result2.confidence > 0.8
+
 
 def test_two_pointer_detector_negatives() -> None:
     """Test TwoPointersDetector does not flag near-misses or simple linear scans."""

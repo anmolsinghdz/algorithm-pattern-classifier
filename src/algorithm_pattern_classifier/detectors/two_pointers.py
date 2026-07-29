@@ -130,6 +130,10 @@ class TwoPointersDetector(BaseDetector):
                             for target in sub_node.targets:
                                 if isinstance(target, ast.Name):
                                     assigned.add(target.id)
+                                elif isinstance(target, (ast.Tuple, ast.List)):
+                                    for elt in target.elts:
+                                        if isinstance(elt, ast.Name):
+                                            assigned.add(elt.id)
                         elif isinstance(sub_node, ast.AnnAssign) and isinstance(
                             sub_node.target, ast.Name
                         ):
@@ -162,6 +166,27 @@ class TwoPointersDetector(BaseDetector):
                             )
                             if left_is_var or right_is_var:
                                 return True
+                        elif (
+                            isinstance(target, (ast.Tuple, ast.List))
+                            and isinstance(node.value, (ast.Tuple, ast.List))
+                            and len(target.elts) == len(node.value.elts)
+                        ):
+                            for i, t_elt in enumerate(target.elts):
+                                if isinstance(t_elt, ast.Name) and t_elt.id == var_name:
+                                    val_elt = node.value.elts[i]
+                                    if isinstance(val_elt, ast.BinOp) and isinstance(
+                                        val_elt.op, (ast.Add, ast.Sub)
+                                    ):
+                                        left_is_var = (
+                                            isinstance(val_elt.left, ast.Name)
+                                            and val_elt.left.id == var_name
+                                        )
+                                        right_is_var = (
+                                            isinstance(val_elt.right, ast.Name)
+                                            and val_elt.right.id == var_name
+                                        )
+                                        if left_is_var or right_is_var:
+                                            return True
                 return False
 
         visitor = TwoPointersVisitor()
