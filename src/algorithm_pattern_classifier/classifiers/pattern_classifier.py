@@ -50,12 +50,9 @@ class PatternClassifier(BaseClassifier):
         Returns:
             A list of PatternMatch objects ranked by confidence.
         """
-        try:
-            ast_tree = ast.parse(source_code)
-            ast_tree = ASTNormalizer().visit(ast_tree)
-            ast.fix_missing_locations(ast_tree)
-        except SyntaxError:
-            return []
+        ast_tree = ast.parse(source_code)
+        ast_tree = ASTNormalizer().visit(ast_tree)
+        ast.fix_missing_locations(ast_tree)
 
         raw_results: list[PatternMatch] = []
         for detector in self.detectors:

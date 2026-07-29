@@ -100,3 +100,12 @@ def test_classifier_dp_suppresses_dfs() -> None:
     # DFS should be suppressed since DP confidence >= 0.5
     assert len(results) == 1
     assert results[0].pattern == AlgorithmPattern.DYNAMIC_PROGRAMMING
+
+
+def test_classifier_syntax_error() -> None:
+    """Test that PatternClassifier raises SyntaxError when input cannot be parsed."""
+    classifier = PatternClassifier()
+    import pytest
+
+    with pytest.raises(SyntaxError):
+        classifier.classify("def broken(:")

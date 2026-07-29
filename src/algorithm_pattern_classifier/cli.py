@@ -36,7 +36,27 @@ def main() -> None:
             sys.exit(1)
 
         classifier = PatternClassifier()
-        results = classifier.classify(source_code)
+        try:
+            results = classifier.classify(source_code)
+        except SyntaxError as e:
+            if args.json:
+                error_info = {
+                    "error": "Failed to parse Python code",
+                    "details": e.msg,
+                    "line": e.lineno,
+                    "column": e.offset,
+                }
+                print(json.dumps(error_info, indent=2))
+            else:
+                print("Algorithm Pattern Classification Report")
+                print("=" * 40)
+                print(f"File: {file_path}")
+                print()
+                print("Failed to parse Python code:")
+                print(f"  Error:  {e.msg}")
+                print(f"  Line:   {e.lineno}")
+                print(f"  Column: {e.offset}")
+            sys.exit(1)
 
         if args.json:
             json_results = [
