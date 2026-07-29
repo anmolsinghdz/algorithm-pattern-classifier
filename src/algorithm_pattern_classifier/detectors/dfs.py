@@ -7,6 +7,10 @@ from algorithm_pattern_classifier.models.patterns import AlgorithmPattern, Patte
 class DFSDetector(BaseDetector):
     """Detector for the Depth-First Search (DFS) algorithmic design pattern."""
 
+    @property
+    def pattern(self) -> AlgorithmPattern:
+        return AlgorithmPattern.DFS
+
     def detect(self, code_ast: ast.AST) -> PatternMatch | None:
         """Parse AST and detect DFS pattern.
 

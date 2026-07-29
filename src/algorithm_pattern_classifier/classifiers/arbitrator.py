@@ -102,6 +102,5 @@ class PatternArbitrator:
 
         return sorted(
             filtered_matches,
-            key=lambda r: (r.confidence, r.pattern.value),
-            reverse=True,
+            key=lambda r: (-r.confidence, r.pattern.value),
         )

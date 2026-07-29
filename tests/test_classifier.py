@@ -1,5 +1,7 @@
 import ast
 
+import pytest
+
 from algorithm_pattern_classifier.classifiers.pattern_classifier import PatternClassifier
 from algorithm_pattern_classifier.interfaces.detector import BaseDetector
 from algorithm_pattern_classifier.models.patterns import AlgorithmPattern, PatternMatch
@@ -9,6 +11,10 @@ class MockDetector(BaseDetector):
     def __init__(self, pattern: AlgorithmPattern, confidence: float) -> None:
         self._pattern = pattern
         self.confidence_value = confidence
+
+    @property
+    def pattern(self) -> AlgorithmPattern:
+        return self._pattern
 
     def detect(self, _code_ast: ast.AST) -> PatternMatch | None:
         if self.confidence_value <= 0.0:
@@ -48,6 +54,21 @@ def test_classifier_multiple_matches_ranked() -> None:
     assert results[0].confidence == 0.9
     assert results[1].pattern == AlgorithmPattern.DYNAMIC_PROGRAMMING
     assert results[1].confidence == 0.7
+
+
+def test_classifier_tie_breaking_equal_confidence() -> None:
+    """Test tie-breaking resolves equal confidences by ascending pattern name."""
+    detectors: list[BaseDetector] = [
+        MockDetector(AlgorithmPattern.DYNAMIC_PROGRAMMING, 0.7),
+        MockDetector(AlgorithmPattern.BFS, 0.7),
+    ]
+    classifier = PatternClassifier(detectors=detectors)
+    results = classifier.classify("pass")
+
+    assert len(results) == 2
+    # "bfs" should outrank "dynamic-programming" alphabetically
+    assert results[0].pattern == AlgorithmPattern.BFS
+    assert results[1].pattern == AlgorithmPattern.DYNAMIC_PROGRAMMING
 
 
 def test_classifier_no_match() -> None:
@@ -105,7 +126,6 @@ def test_classifier_dp_suppresses_dfs() -> None:
 def test_classifier_syntax_error() -> None:
     """Test that PatternClassifier raises SyntaxError when input cannot be parsed."""
     classifier = PatternClassifier()
-    import pytest
 
     with pytest.raises(SyntaxError):
         classifier.classify("def broken(:")

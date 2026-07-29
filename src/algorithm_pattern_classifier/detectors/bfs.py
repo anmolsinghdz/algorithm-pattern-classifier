@@ -7,6 +7,10 @@ from algorithm_pattern_classifier.models.patterns import AlgorithmPattern, Patte
 class BFSDetector(BaseDetector):
     """Detector for the Breadth-First Search (BFS) algorithmic design pattern."""
 
+    @property
+    def pattern(self) -> AlgorithmPattern:
+        return AlgorithmPattern.BFS
+
     def detect(self, code_ast: ast.AST) -> PatternMatch | None:
         """Parse AST and detect BFS pattern.
 

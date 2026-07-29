@@ -7,6 +7,10 @@ from algorithm_pattern_classifier.models.patterns import AlgorithmPattern, Patte
 class BacktrackingDetector(BaseDetector):
     """Detector for the Backtracking algorithmic design pattern."""
 
+    @property
+    def pattern(self) -> AlgorithmPattern:
+        return AlgorithmPattern.BACKTRACKING
+
     def detect(self, code_ast: ast.AST) -> PatternMatch | None:
         """Parse AST and detect Backtracking pattern.
 

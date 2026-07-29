@@ -1,4 +1,5 @@
 import ast
+import logging
 
 from algorithm_pattern_classifier.classifiers.arbitrator import PatternArbitrator
 from algorithm_pattern_classifier.detectors.backtracking import BacktrackingDetector
@@ -11,6 +12,8 @@ from algorithm_pattern_classifier.interfaces.classifier import BaseClassifier
 from algorithm_pattern_classifier.interfaces.detector import BaseDetector
 from algorithm_pattern_classifier.models.patterns import PatternMatch
 from algorithm_pattern_classifier.utils.ast_normalizer import ASTNormalizer
+
+logger = logging.getLogger(__name__)
 
 
 class PatternClassifier(BaseClassifier):
@@ -61,7 +64,7 @@ class PatternClassifier(BaseClassifier):
                 if res is not None and res.confidence > 0.0:
                     raw_results.append(res)
             except Exception:
-                # Robustly proceed if an individual detector raises an error
+                logger.exception("Detector %s failed", type(detector).__name__)
                 continue
 
         return self.arbitrator.arbitrate(raw_results)
