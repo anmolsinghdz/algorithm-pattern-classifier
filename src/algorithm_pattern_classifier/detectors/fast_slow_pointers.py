@@ -51,7 +51,7 @@ class MovementAnalyzer:
                 return inner + 1
             return -1
 
-        # Subscript – check the index first (e.g. nums[nums[fast]] has an
+        # Subscript - check the index first (e.g. nums[nums[fast]] has an
         # extra step for the nested subscript), then fall back to the value.
         if isinstance(node, ast.Subscript):
             inner = cls.count_steps(node.slice, variable)
@@ -64,7 +64,7 @@ class MovementAnalyzer:
 
             return -1
 
-        # Function call – each argument that references `variable` adds one
+        # Function call - each argument that references `variable` adds one
         # step (e.g. move(fast) -> 1, move(move(fast)) -> 2).
         if isinstance(node, ast.Call):
             best = -1
@@ -74,7 +74,7 @@ class MovementAnalyzer:
                     best = max(best, score + 1)
             return best
 
-        # Tuple / list destructuring – pick the deepest reference found.
+        # Tuple / list destructuring - pick the deepest reference found.
         if isinstance(node, (ast.Tuple, ast.List)):
             best = -1
             for elt in node.elts:
@@ -290,7 +290,7 @@ class FastSlowPointersDetector(BaseDetector):
                 UpdateAnalyzer(pointers).visit(loop_node)
                 EqualityAnalyzer(pointers).visit(loop_node)
 
-                # Deduplicate pairs – each unordered pair is processed once.
+                # Deduplicate pairs - each unordered pair is processed once.
                 checked_pairs: set[tuple[str, str]] = set()
                 for name, info in pointers.items():
                     for other_name in info.compared_with:
@@ -311,7 +311,7 @@ class FastSlowPointersDetector(BaseDetector):
                         fast = other_name if s1 < s2 else name
 
                         # Confidence composition.
-                        confidence = 0.3   # two pointers exist in the loop
+                        confidence = 0.3  # two pointers exist in the loop
                         confidence += 0.4  # differential step rates confirmed
                         if slow in initialized_before and fast in initialized_before:
                             confidence += 0.3  # both set up before the loop
@@ -324,9 +324,7 @@ class FastSlowPointersDetector(BaseDetector):
                             f"with equality check."
                         )
 
-            def _walk_body(
-                self, body: list[ast.stmt], initialized: set[str]
-            ) -> None:
+            def _walk_body(self, body: list[ast.stmt], initialized: set[str]) -> None:
                 """Walk a statement list, checking loops and tracking assignments."""
                 for stmt in body:
                     if isinstance(stmt, (ast.While, ast.For)):
@@ -334,7 +332,7 @@ class FastSlowPointersDetector(BaseDetector):
                     self._collect_assigned(initialized, stmt)
 
             def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-                """Enter a function – start with an empty initialized set."""
+                """Enter a function - start with an empty initialized set."""
                 initialized: set[str] = set()
                 self._walk_body(node.body, initialized)
                 self.generic_visit(node)
