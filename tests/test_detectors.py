@@ -134,3 +134,115 @@ def test_sliding_window_detector_negatives() -> None:
     )
     result = detector.detect(ast.parse(bubble_sort_code))
     assert result is None
+
+
+def test_two_pointer_detector_swap() -> None:
+    """Test that a pure swap does not count as updates and scores 0.0."""
+    detector = TwoPointersDetector()
+    code = (
+        "def swap_only(arr):\n"
+        "    left = 0\n"
+        "    right = len(arr) - 1\n"
+        "    while left < right:\n"
+        "        left, right = right, left\n"
+    )
+    result = detector.detect(ast.parse(code))
+    assert result is None
+
+
+def test_two_pointer_detector_binary_search() -> None:
+    """Test binary-search shape with converging pointers assigned from midpoint."""
+    detector = TwoPointersDetector()
+    code = (
+        "def binary_search(arr, target):\n"
+        "    left, right = 0, len(arr) - 1\n"
+        "    while left < right:\n"
+        "        mid = (left + right) // 2\n"
+        "        if arr[mid] < target:\n"
+        "            left = mid + 1\n"
+        "        else:\n"
+        "            right = mid\n"
+        "    return left\n"
+    )
+    result = detector.detect(ast.parse(code))
+    assert result is not None
+    assert result.confidence == 0.8  # both updated generally (not classic updates of left/right)
+
+
+def test_two_pointer_detector_async() -> None:
+    """Test that async functions containing two-pointer logic are detected correctly."""
+    detector = TwoPointersDetector()
+    code = (
+        "async def async_two_sum(arr, target):\n"
+        "    left = 0\n"
+        "    right = len(arr) - 1\n"
+        "    while left < right:\n"
+        "        current = arr[left] + arr[right]\n"
+        "        if current == target:\n"
+        "            return [left, right]\n"
+        "        if current < target:\n"
+        "            left += 1\n"
+        "        else:\n"
+        "            right -= 1\n"
+        "    return []\n"
+    )
+    result = detector.detect(ast.parse(code))
+    assert result is not None
+    assert result.confidence == 1.0
+
+
+def test_two_pointer_detector_tiers() -> None:
+    """Test different confidence tiers of two-pointer detection (e.g. 0.8 vs 0.6)."""
+    detector = TwoPointersDetector()
+
+    # Tier 0.8: Initialized and updated, but neither pointer is updated arithmetically
+    # (e.g. linked list / general pointers)
+    non_classic_code = (
+        "def list_search(nodes):\n"
+        "    left = nodes[0]\n"
+        "    right = nodes[-1]\n"
+        "    while left < right:\n"
+        "        left = left.next\n"
+        "        right = right.prev\n"
+    )
+    result_0_8 = detector.detect(ast.parse(non_classic_code))
+    assert result_0_8 is not None
+    assert result_0_8.confidence == 0.8
+
+    # Tier 0.8: Updates only, no pre-loop initialization detected, but both classic updates
+    no_init_code = (
+        "def no_init(arr):\n"
+        "    while left < right:\n"
+        "        left = left + 1\n"
+        "        right = right - 1\n"
+    )
+    result_no_init = detector.detect(ast.parse(no_init_code))
+    assert result_no_init is not None
+    assert result_no_init.confidence == 0.8
+
+    # Tier 0.6: Updates only, no pre-loop initialization, and no classic updates
+    no_init_non_classic_code = (
+        "def no_init_non_classic(nodes):\n"
+        "    while left < right:\n"
+        "        left = nodes[0]\n"
+        "        right = nodes[-1]\n"
+    )
+    result_0_6 = detector.detect(ast.parse(no_init_non_classic_code))
+    assert result_0_6 is not None
+    assert result_0_6.confidence == 0.6
+
+
+def test_two_pointer_detector_parameter_initializers() -> None:
+    """Test that posonlyargs, kwonlyargs, and varargs are treated as pointer initializers."""
+    detector = TwoPointersDetector()
+
+    # Keyword-only arguments
+    code_kwonly = (
+        "def two_sum(arr, *, left, right):\n"
+        "    while left < right:\n"
+        "        left += 1\n"
+        "        right -= 1\n"
+    )
+    result = detector.detect(ast.parse(code_kwonly))
+    assert result is not None
+    assert result.confidence == 1.0
