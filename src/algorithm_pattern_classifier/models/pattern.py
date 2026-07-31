@@ -7,6 +7,7 @@ class AlgorithmPattern(StrEnum):
     TWO_POINTER = "two-pointer"
     SLIDING_WINDOW = "sliding-window"
     DYNAMIC_PROGRAMMING = "dynamic-programming"
+    FAST_SLOW_POINTERS = "fast-slow-pointers"
     BACKTRACKING = "backtracking"
     BFS_DFS = "bfs-dfs"
     GREEDY = "greedy"
