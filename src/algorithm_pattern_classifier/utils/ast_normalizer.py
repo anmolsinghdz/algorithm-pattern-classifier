@@ -22,6 +22,7 @@ class ASTNormalizer(ast.NodeTransformer):
             and isinstance(node.targets[0], ast.Tuple)
             and isinstance(node.value, ast.Tuple)
             and len(node.targets[0].elts) == len(node.value.elts)
+            and not any(isinstance(elt, ast.Starred) for elt in node.targets[0].elts)
         ):
             new_nodes: list[ast.AST] = []
             for target, val in zip(node.targets[0].elts, node.value.elts, strict=True):

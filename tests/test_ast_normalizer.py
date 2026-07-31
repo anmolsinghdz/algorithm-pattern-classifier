@@ -57,3 +57,16 @@ def test_two_pointers_unpacking_integration() -> None:
     assert len(results) > 0
     assert results[0].pattern == AlgorithmPattern.TWO_POINTERS
     assert results[0].confidence >= 0.8
+
+
+def test_ast_normalizer_starred_unpacking() -> None:
+    """Test ASTNormalizer leaves starred unpacking assignments as-is."""
+    code = "a, *b = 1, 2"
+    tree = ast.parse(code)
+    normalized = ASTNormalizer().visit(tree)
+    ast.fix_missing_locations(normalized)
+
+    assert isinstance(normalized, ast.Module)
+    assert len(normalized.body) == 1
+    assert isinstance(normalized.body[0], ast.Assign)
+    assert isinstance(normalized.body[0].targets[0], ast.Tuple)

@@ -15,5 +15,8 @@ class BaseClassifier(ABC):
 
         Returns:
             A list of PatternMatch objects ranked by confidence.
+
+        Raises:
+            SyntaxError: If the source code cannot be parsed.
         """
         pass

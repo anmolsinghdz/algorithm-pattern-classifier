@@ -31,7 +31,7 @@ class PatternClassifier(BaseClassifier):
             arbitrator: An arbitrator instance. If None, defaults to PatternArbitrator.
         """
         if detectors is None:
-            self.detectors = [
+            self.detectors: list[BaseDetector] = [
                 TwoPointersDetector(),
                 SlidingWindowDetector(),
                 DynamicProgrammingDetector(),
@@ -52,6 +52,9 @@ class PatternClassifier(BaseClassifier):
 
         Returns:
             A list of PatternMatch objects ranked by confidence.
+
+        Raises:
+            SyntaxError: If the source code is syntactically invalid and cannot be parsed.
         """
         ast_tree = ast.parse(source_code)
         ast_tree = ASTNormalizer().visit(ast_tree)

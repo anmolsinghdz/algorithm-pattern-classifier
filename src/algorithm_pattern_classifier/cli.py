@@ -46,16 +46,16 @@ def main() -> None:
                     "line": e.lineno,
                     "column": e.offset,
                 }
-                print(json.dumps(error_info, indent=2))
+                print(json.dumps(error_info, indent=2), file=sys.stderr)
             else:
-                print("Algorithm Pattern Classification Report")
-                print("=" * 40)
-                print(f"File: {file_path}")
-                print()
-                print("Failed to parse Python code:")
-                print(f"  Error:  {e.msg}")
-                print(f"  Line:   {e.lineno}")
-                print(f"  Column: {e.offset}")
+                print("Algorithm Pattern Classification Report", file=sys.stderr)
+                print("=" * 40, file=sys.stderr)
+                print(f"File: {file_path}", file=sys.stderr)
+                print(file=sys.stderr)
+                print("Failed to parse Python code:", file=sys.stderr)
+                print(f"  Error:  {e.msg}", file=sys.stderr)
+                print(f"  Line:   {e.lineno}", file=sys.stderr)
+                print(f"  Column: {e.offset}", file=sys.stderr)
             sys.exit(1)
 
         if args.json:
