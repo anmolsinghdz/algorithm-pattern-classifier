@@ -1,5 +1,7 @@
 from typing import Any
 
+import pytest
+
 from algorithm_pattern_classifier.interfaces.classifier import BaseClassifier
 from algorithm_pattern_classifier.interfaces.detector import BaseDetector
 from algorithm_pattern_classifier.models.pattern import AlgorithmPattern
@@ -42,6 +44,24 @@ def test_classification_result_construction_and_equality() -> None:
         pattern=AlgorithmPattern.BINARY_SEARCH, confidence_score=0.5
     )
     assert result_default.supporting_evidence == []
+
+
+def test_classification_result_validation() -> None:
+    """Test confidence_score bounds validation in ClassificationResult."""
+    # Scores outside [0.0, 1.0] should raise ValueError
+    with pytest.raises(ValueError, match=r"confidence_score must be between 0\.0 and 1\.0"):
+        ClassificationResult(pattern=AlgorithmPattern.TWO_POINTER, confidence_score=-0.1)
+
+    with pytest.raises(ValueError, match=r"confidence_score must be between 0\.0 and 1\.0"):
+        ClassificationResult(pattern=AlgorithmPattern.TWO_POINTER, confidence_score=1.1)
+
+    # Valid boundary scores 0.0 and 1.0 should work
+    res_min = ClassificationResult(pattern=AlgorithmPattern.TWO_POINTER, confidence_score=0.0)
+    assert res_min.confidence_score == 0.0
+
+    res_max = ClassificationResult(pattern=AlgorithmPattern.TWO_POINTER, confidence_score=1.0)
+    assert res_max.confidence_score == 1.0
+
 
 
 def test_interfaces_implementability() -> None:
