@@ -23,4 +23,3 @@ class ClassificationResult:
             raise ValueError(
                 f"confidence_score must be between 0.0 and 1.0, got {self.confidence_score}"
             )
-
