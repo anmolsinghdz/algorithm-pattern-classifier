@@ -63,7 +63,6 @@ def test_classification_result_validation() -> None:
     assert res_max.confidence_score == 1.0
 
 
-
 def test_interfaces_implementability() -> None:
     """Verify that BaseDetector and BaseClassifier can be concretely subclassed."""
 
