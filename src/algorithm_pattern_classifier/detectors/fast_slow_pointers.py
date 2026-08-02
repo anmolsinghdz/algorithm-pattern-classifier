@@ -317,7 +317,7 @@ class FastSlowPointersDetector(BaseDetector):
                             confidence += 0.3  # both set up before the loop
 
                         self.found = True
-                        self.confidence = confidence
+                        self.confidence = max(self.confidence, confidence)
                         self.evidence.append(
                             f"Line {loop_node.lineno}: found fast/slow pointers "
                             f"'{slow}' (1 step) and '{fast}' ({max(s1, s2)} steps) "
