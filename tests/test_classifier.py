@@ -20,7 +20,7 @@ class MockDetector(BaseDetector):
         return ClassificationResult(
             pattern=self.pattern,
             confidence_score=self.confidence,
-            supporting_evidence=[f"Mock {self.pattern.value}"],
+            supporting_evidence=(f"Mock {self.pattern.value}",),
         )
 
 
