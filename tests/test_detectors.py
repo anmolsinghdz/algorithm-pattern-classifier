@@ -1,3 +1,4 @@
+from algorithm_pattern_classifier.detectors.fast_slow_pointers import FastSlowPointersDetector
 from algorithm_pattern_classifier.detectors.sliding_window import SlidingWindowDetector
 from algorithm_pattern_classifier.detectors.two_pointer import TwoPointerDetector
 
@@ -115,3 +116,153 @@ def test_sliding_window_detector_negatives() -> None:
     )
     result = detector.detect(bubble_sort_code)
     assert result.confidence_score == 0.0
+
+
+def test_fast_slow_pointers_linked_list_cycle() -> None:
+    """Test detection of Floyd's algorithm for linked list cycle (LC 141)."""
+    detector = FastSlowPointersDetector()
+
+    code = (
+        "def hasCycle(head):\n"
+        "    if not head or not head.next:\n"
+        "        return False\n"
+        "    slow = head\n"
+        "    fast = head\n"
+        "    while fast and fast.next:\n"
+        "        slow = slow.next\n"
+        "        fast = fast.next.next\n"
+        "        if slow == fast:\n"
+        "            return True\n"
+        "    return False\n"
+    )
+    result = detector.detect(code)
+    assert result.confidence_score > 0.8
+    assert "slow" in result.supporting_evidence[0]
+    assert "fast" in result.supporting_evidence[0]
+
+
+def test_fast_slow_pointers_find_duplicate() -> None:
+    """Test detection of fast/slow pointers in array (LC 287)."""
+    detector = FastSlowPointersDetector()
+
+    code = (
+        "def findDuplicate(nums):\n"
+        "    slow = nums[0]\n"
+        "    fast = nums[0]\n"
+        "    while True:\n"
+        "        slow = nums[slow]\n"
+        "        fast = nums[nums[fast]]\n"
+        "        if slow == fast:\n"
+        "            break\n"
+        "    slow = nums[0]\n"
+        "    while slow != fast:\n"
+        "        slow = nums[slow]\n"
+        "        fast = nums[fast]\n"
+        "    return slow\n"
+    )
+    result = detector.detect(code)
+    assert result.confidence_score > 0.8
+    assert "slow" in result.supporting_evidence[0]
+    assert "fast" in result.supporting_evidence[0]
+
+
+def test_fast_slow_pointers_augassign() -> None:
+    """Test detection using augmented assignment (+= 1 vs += 2)."""
+    detector = FastSlowPointersDetector()
+
+    code = (
+        "def find_cycle(arr):\n"
+        "    slow = 0\n"
+        "    fast = 0\n"
+        "    while True:\n"
+        "        slow += 1\n"
+        "        fast += 2\n"
+        "        if slow == fast:\n"
+        "            return True\n"
+        "    return False\n"
+    )
+    result = detector.detect(code)
+    assert result.confidence_score > 0.8
+
+
+def test_fast_slow_pointers_while_condition_eq() -> None:
+    """Test detection when equality check is in the while condition."""
+    detector = FastSlowPointersDetector()
+
+    code = (
+        "def find_cycle(arr):\n"
+        "    slow = 0\n"
+        "    fast = 1\n"
+        "    while slow != fast:\n"
+        "        slow = arr[slow]\n"
+        "        fast = arr[arr[fast]]\n"
+        "    return slow\n"
+    )
+    result = detector.detect(code)
+    assert result.confidence_score > 0.8
+
+
+def test_fast_slow_pointers_no_differential() -> None:
+    """Test that same-step-rate pointers do not trigger detection."""
+    detector = FastSlowPointersDetector()
+
+    code = (
+        "def find_duplicate(nums):\n"
+        "    slow = nums[0]\n"
+        "    fast = nums[0]\n"
+        "    while slow != fast:\n"
+        "        slow = nums[slow]\n"
+        "        fast = nums[fast]\n"
+        "    return slow\n"
+    )
+    result = detector.detect(code)
+    assert result.confidence_score == 0.0
+
+
+def test_fast_slow_pointers_no_equality_check() -> None:
+    """Test that no equality check between pointers does not trigger."""
+    detector = FastSlowPointersDetector()
+
+    code = (
+        "def example():\n"
+        "    slow = 0\n"
+        "    fast = 0\n"
+        "    while True:\n"
+        "        slow += 1\n"
+        "        fast += 2\n"
+        "        print(slow, fast)\n"
+    )
+    result = detector.detect(code)
+    assert result.confidence_score == 0.0
+
+
+def test_fast_slow_pointers_single_pointer() -> None:
+    """Test that a single-pointer linear scan does not trigger."""
+    detector = FastSlowPointersDetector()
+
+    code = (
+        "def linear_scan(arr, target):\n"
+        "    for i in range(len(arr)):\n"
+        "        if arr[i] == target:\n"
+        "            return i\n"
+        "    return -1\n"
+    )
+    result = detector.detect(code)
+    assert result.confidence_score == 0.0
+
+
+def test_fast_slow_pointers_not_initialized() -> None:
+    """Test that pointers not initialized before the loop give partial confidence."""
+    detector = FastSlowPointersDetector()
+
+    code = (
+        "def example():\n"
+        "    while True:\n"
+        "        slow += 1\n"
+        "        fast += 2\n"
+        "        if slow == fast:\n"
+        "            break\n"
+    )
+    result = detector.detect(code)
+    # Should still detect (base 0.3 + differential 0.4 = 0.7, no init bonus)
+    assert result.confidence_score == 0.7

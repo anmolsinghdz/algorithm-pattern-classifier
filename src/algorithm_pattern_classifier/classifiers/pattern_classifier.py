@@ -1,6 +1,7 @@
 import ast
 
 from algorithm_pattern_classifier.detectors.dynamic_programming import DynamicProgrammingDetector
+from algorithm_pattern_classifier.detectors.fast_slow_pointers import FastSlowPointersDetector
 from algorithm_pattern_classifier.detectors.sliding_window import SlidingWindowDetector
 from algorithm_pattern_classifier.detectors.two_pointer import TwoPointerDetector
 from algorithm_pattern_classifier.interfaces.classifier import BaseClassifier
@@ -24,6 +25,7 @@ class PatternClassifier(BaseClassifier):
                 TwoPointerDetector(),
                 SlidingWindowDetector(),
                 DynamicProgrammingDetector(),
+                FastSlowPointersDetector(),
             ]
         else:
             self.detectors = detectors
