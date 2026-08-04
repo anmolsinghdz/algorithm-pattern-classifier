@@ -30,7 +30,7 @@ class DynamicProgrammingDetector(BaseDetector):
                 return ClassificationResult(
                     pattern=self.pattern,
                     confidence_score=0.0,
-                    supporting_evidence=["Syntax error during parsing"],
+                    supporting_evidence=("Syntax error during parsing",),
                 )
 
         evidence: list[str] = []
@@ -232,5 +232,5 @@ class DynamicProgrammingDetector(BaseDetector):
         return ClassificationResult(
             pattern=self.pattern,
             confidence_score=max_confidence,
-            supporting_evidence=evidence,
+            supporting_evidence=tuple(evidence),
         )
