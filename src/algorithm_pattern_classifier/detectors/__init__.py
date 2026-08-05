@@ -2,6 +2,7 @@ from algorithm_pattern_classifier.detectors.backtracking import BacktrackingDete
 from algorithm_pattern_classifier.detectors.bfs import BFSDetector
 from algorithm_pattern_classifier.detectors.dfs import DFSDetector
 from algorithm_pattern_classifier.detectors.dynamic_programming import DynamicProgrammingDetector
+from algorithm_pattern_classifier.detectors.fast_slow_pointers import FastSlowPointersDetector
 from algorithm_pattern_classifier.detectors.sliding_window import SlidingWindowDetector
 from algorithm_pattern_classifier.detectors.two_pointers import TwoPointersDetector
 
@@ -10,6 +11,7 @@ __all__ = [
     "BacktrackingDetector",
     "DFSDetector",
     "DynamicProgrammingDetector",
+    "FastSlowPointersDetector",
     "SlidingWindowDetector",
     "TwoPointersDetector",
 ]

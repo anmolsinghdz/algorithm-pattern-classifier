@@ -17,6 +17,7 @@ def test_corpus_regression_evaluation() -> None:
         "two_pointer": AlgorithmPattern.TWO_POINTERS,
         "sliding_window": AlgorithmPattern.SLIDING_WINDOW,
         "dynamic_programming": AlgorithmPattern.DYNAMIC_PROGRAMMING,
+        "fast_slow_pointers": AlgorithmPattern.FAST_SLOW_POINTERS,
         "negatives": None,
     }
 

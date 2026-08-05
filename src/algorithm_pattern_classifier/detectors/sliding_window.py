@@ -20,6 +20,7 @@ class SlidingWindowDetector(BaseDetector):
         Returns:
             A PatternMatch representing the detection outcome, or None.
         """
+
         evidence: list[str] = []
         max_confidence = 0.0
 
