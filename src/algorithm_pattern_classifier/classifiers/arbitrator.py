@@ -1,4 +1,5 @@
 import dataclasses
+from collections.abc import Mapping
 from typing import Any
 
 from algorithm_pattern_classifier.models.patterns import AlgorithmPattern, PatternMatch
@@ -18,7 +19,7 @@ class PatternArbitrator:
 
     def __init__(
         self,
-        rules: dict[AlgorithmPattern, SubsumptionRule | dict[str, Any]] | None = None,
+        rules: Mapping[AlgorithmPattern, SubsumptionRule | dict[str, Any]] | None = None,
         mutual_exclusion: list[set[AlgorithmPattern]] | None = None,
     ) -> None:
         """Initialize the PatternArbitrator with rules and mutual exclusion configurations.
