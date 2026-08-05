@@ -24,6 +24,12 @@ class ASTNormalizer(ast.NodeTransformer):
             and len(node.targets[0].elts) == len(node.value.elts)
             and not any(isinstance(elt, ast.Starred) for elt in node.targets[0].elts)
         ):
+            target_names = {n.id for n in ast.walk(node.targets[0]) if isinstance(n, ast.Name)}
+            value_names = {n.id for n in ast.walk(node.value) if isinstance(n, ast.Name)}
+
+            if target_names & value_names:
+                return self.generic_visit(node)
+
             new_nodes: list[ast.AST] = []
             for target, val in zip(node.targets[0].elts, node.value.elts, strict=True):
                 new_assign = ast.Assign(targets=[target], value=val)

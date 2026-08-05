@@ -70,3 +70,48 @@ def test_ast_normalizer_starred_unpacking() -> None:
     assert len(normalized.body) == 1
     assert isinstance(normalized.body[0], ast.Assign)
     assert isinstance(normalized.body[0].targets[0], ast.Tuple)
+
+
+def test_ast_normalizer_swap_unchanged() -> None:
+    """Test ASTNormalizer preserves variable swap assignments without desugaring."""
+    code = "a, b = b, a"
+    tree = ast.parse(code)
+    normalized = ASTNormalizer().visit(tree)
+    ast.fix_missing_locations(normalized)
+
+    assert isinstance(normalized, ast.Module)
+    assert len(normalized.body) == 1
+    assert isinstance(normalized.body[0], ast.Assign)
+    assert isinstance(normalized.body[0].targets[0], ast.Tuple)
+
+
+def test_ast_normalizer_subscript_swap_unchanged() -> None:
+    """Test ASTNormalizer preserves subscript array swap assignments without desugaring."""
+    code = "arr[i], arr[j] = arr[j], arr[i]"
+    tree = ast.parse(code)
+    normalized = ASTNormalizer().visit(tree)
+    ast.fix_missing_locations(normalized)
+
+    assert isinstance(normalized, ast.Module)
+    assert len(normalized.body) == 1
+    assert isinstance(normalized.body[0], ast.Assign)
+    assert isinstance(normalized.body[0].targets[0], ast.Tuple)
+
+
+def test_two_pointers_swap_integration() -> None:
+    """Test that a function using pointer swapping is recognized correctly as two pointers."""
+    code = (
+        "def reverse_array(arr):\n"
+        "    left, right = 0, len(arr) - 1\n"
+        "    while left < right:\n"
+        "        arr[left], arr[right] = arr[right], arr[left]\n"
+        "        left += 1\n"
+        "        right -= 1\n"
+        "    return arr\n"
+    )
+    classifier = PatternClassifier()
+    results = classifier.classify(code)
+
+    assert len(results) > 0
+    assert results[0].pattern == AlgorithmPattern.TWO_POINTERS
+    assert results[0].confidence >= 0.8
