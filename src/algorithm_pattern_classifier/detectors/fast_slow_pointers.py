@@ -1,10 +1,8 @@
 import ast
 from dataclasses import dataclass, field
-from typing import Any
 
 from algorithm_pattern_classifier.interfaces.detector import BaseDetector
-from algorithm_pattern_classifier.models.pattern import AlgorithmPattern
-from algorithm_pattern_classifier.models.result import ClassificationResult
+from algorithm_pattern_classifier.models.patterns import AlgorithmPattern, PatternMatch
 
 
 @dataclass
@@ -215,20 +213,7 @@ class FastSlowPointersDetector(BaseDetector):
     def pattern(self) -> AlgorithmPattern:
         return AlgorithmPattern.FAST_SLOW_POINTERS
 
-    def detect(self, source_code: str, ast_tree: Any = None) -> ClassificationResult:
-        if ast_tree is None:
-            try:
-                ast_tree = ast.parse(source_code)
-            except SyntaxError:
-                return ClassificationResult(
-                    pattern=self.pattern,
-                    confidence_score=0.0,
-                    supporting_evidence=["Syntax error during parsing"],
-                )
-
-        evidence: list[str] = []
-        max_confidence = 0.0
-
+    def detect(self, code_ast: ast.AST) -> PatternMatch | None:
         # Inner visitor that carries the detection state per invocation.
         class FastSlowVisitor(ast.NodeVisitor):
             """Stateful AST walker that pinpoints fast/slow pointer loops."""
@@ -344,14 +329,13 @@ class FastSlowPointersDetector(BaseDetector):
                 self.generic_visit(node)
 
         visitor = FastSlowVisitor()
-        visitor.visit(ast_tree)
+        visitor.visit(code_ast)
 
         if visitor.found:
-            max_confidence = visitor.confidence
-            evidence = visitor.evidence
+            return PatternMatch(
+                pattern=AlgorithmPattern.FAST_SLOW_POINTERS,
+                confidence=round(visitor.confidence, 2),
+                evidence=visitor.evidence,
+            )
 
-        return ClassificationResult(
-            pattern=self.pattern,
-            confidence_score=max_confidence,
-            supporting_evidence=evidence,
-        )
+        return None

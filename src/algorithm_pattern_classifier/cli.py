@@ -36,14 +36,34 @@ def main() -> None:
             sys.exit(1)
 
         classifier = PatternClassifier()
-        results = classifier.classify(source_code)
+        try:
+            results = classifier.classify(source_code)
+        except SyntaxError as e:
+            if args.json:
+                error_info = {
+                    "error": "Failed to parse Python code",
+                    "details": e.msg,
+                    "line": e.lineno,
+                    "column": e.offset,
+                }
+                print(json.dumps(error_info, indent=2), file=sys.stderr)
+            else:
+                print("Algorithm Pattern Classification Report", file=sys.stderr)
+                print("=" * 40, file=sys.stderr)
+                print(f"File: {file_path}", file=sys.stderr)
+                print(file=sys.stderr)
+                print("Failed to parse Python code:", file=sys.stderr)
+                print(f"  Error:  {e.msg}", file=sys.stderr)
+                print(f"  Line:   {e.lineno}", file=sys.stderr)
+                print(f"  Column: {e.offset}", file=sys.stderr)
+            sys.exit(1)
 
         if args.json:
             json_results = [
                 {
                     "pattern": res.pattern.value,
-                    "confidence_score": res.confidence_score,
-                    "supporting_evidence": res.supporting_evidence,
+                    "confidence_score": res.confidence,
+                    "supporting_evidence": res.evidence,
                 }
                 for res in results
             ]
@@ -59,10 +79,10 @@ def main() -> None:
                 print("Detected Patterns:")
                 for res in results:
                     print(f"  - Pattern:    {res.pattern.value.upper()}")
-                    print(f"    Confidence: {res.confidence_score * 100:.1f}%")
-                    if res.supporting_evidence:
+                    print(f"    Confidence: {res.confidence * 100:.1f}%")
+                    if res.evidence:
                         print("    Evidence:")
-                        for evidence in res.supporting_evidence:
+                        for evidence in res.evidence:
                             print(f"      * {evidence}")
                     print()
 
