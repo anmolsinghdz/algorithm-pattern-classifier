@@ -14,6 +14,8 @@ class AlgorithmPattern(StrEnum):
     DFS = "dfs"
     DYNAMIC_PROGRAMMING = "dynamic-programming"
     GREEDY = "greedy"
+    PREFIX_SUM = "prefix-sum"
+    DIFFERENCE_ARRAY = "difference-array"
 
 
 @dataclass(frozen=True)

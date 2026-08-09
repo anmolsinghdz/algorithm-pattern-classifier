@@ -18,6 +18,7 @@ def test_corpus_regression_evaluation() -> None:
         "sliding_window": AlgorithmPattern.SLIDING_WINDOW,
         "dynamic_programming": AlgorithmPattern.DYNAMIC_PROGRAMMING,
         "fast_slow_pointers": AlgorithmPattern.FAST_SLOW_POINTERS,
+        "prefix_sum": AlgorithmPattern.PREFIX_SUM,
         "negatives": None,
     }
 

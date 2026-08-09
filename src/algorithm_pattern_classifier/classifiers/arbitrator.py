@@ -51,6 +51,11 @@ class PatternArbitrator:
                     subsumes=[AlgorithmPattern.DFS],
                     threshold=0.5,
                 ),
+                AlgorithmPattern.PREFIX_SUM: SubsumptionRule(
+                    subsumes=[AlgorithmPattern.DYNAMIC_PROGRAMMING],
+                    threshold=0.85,
+                    compare_confidence=True,
+                ),
             }
         else:
             for pattern, rule_val in rules.items():

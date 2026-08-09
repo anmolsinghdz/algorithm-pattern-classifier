@@ -19,6 +19,8 @@ def test_algorithm_pattern_enum() -> None:
     assert AlgorithmPattern.BFS.value == "bfs"
     assert AlgorithmPattern.DFS.value == "dfs"
     assert AlgorithmPattern.GREEDY.value == "greedy"
+    assert AlgorithmPattern.PREFIX_SUM.value == "prefix-sum"
+    assert AlgorithmPattern.DIFFERENCE_ARRAY.value == "difference-array"
 
 
 def test_pattern_match_construction_and_equality() -> None:
