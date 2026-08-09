@@ -172,9 +172,7 @@ class PrefixSumDetector(BaseDetector):
                                 tgt_base
                                 and isinstance(node.value, ast.Subscript)
                                 and _get_subscript_base_name(node.value) == tgt_base
-                                and _is_prior_index(
-                                    node.value.slice, node.target.slice, loop_var
-                                )
+                                and _is_prior_index(node.value.slice, node.target.slice, loop_var)
                             ):
                                 nonlocal has_inplace_prefix_sum
                                 has_inplace_prefix_sum = True
@@ -233,16 +231,12 @@ class PrefixSumDetector(BaseDetector):
                                     left_is_prior = (
                                         left_sub is not None
                                         and _get_subscript_base_name(left_sub) == tgt_base
-                                        and _is_prior_index(
-                                            left_sub.slice, target.slice, loop_var
-                                        )
+                                        and _is_prior_index(left_sub.slice, target.slice, loop_var)
                                     )
                                     right_is_prior = (
                                         right_sub is not None
                                         and _get_subscript_base_name(right_sub) == tgt_base
-                                        and _is_prior_index(
-                                            right_sub.slice, target.slice, loop_var
-                                        )
+                                        and _is_prior_index(right_sub.slice, target.slice, loop_var)
                                     )
 
                                     if left_is_prior and right_is_prior:

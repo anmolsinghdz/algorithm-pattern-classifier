@@ -129,9 +129,7 @@ def test_prefix_sum_itertools_accumulate() -> None:
     detector = PrefixSumDetector()
 
     code = (
-        "from itertools import accumulate\n"
-        "def get_sums(nums):\n"
-        "    return list(accumulate(nums))\n"
+        "from itertools import accumulate\ndef get_sums(nums):\n    return list(accumulate(nums))\n"
     )
     result = detector.detect(ast.parse(code))
     assert result is not None

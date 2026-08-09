@@ -28,8 +28,8 @@ class PatternClassifier(BaseClassifier):
     ) -> None:
         """Initialize the classifier with optional custom detectors and arbitrator.
 
-            detectors: A list of detectors. If None, defaults to registering default detectors.
-            arbitrator: An arbitrator instance. If None, defaults to PatternArbitrator.
+        detectors: A list of detectors. If None, defaults to registering default detectors.
+        arbitrator: An arbitrator instance. If None, defaults to PatternArbitrator.
         """
         if detectors is None:
             self.detectors: list[BaseDetector] = [
