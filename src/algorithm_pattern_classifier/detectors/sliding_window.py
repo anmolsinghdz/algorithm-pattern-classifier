@@ -4,6 +4,191 @@ from algorithm_pattern_classifier.interfaces.detector import BaseDetector
 from algorithm_pattern_classifier.models.patterns import AlgorithmPattern, PatternMatch
 
 
+def _get_target_names(target: ast.AST) -> list[str]:
+    """Recursively extract all identifier names from an assignment target."""
+    if isinstance(target, ast.Name):
+        return [target.id]
+    if isinstance(target, (ast.Tuple, ast.List)):
+        names: list[str] = []
+        for elt in target.elts:
+            names.extend(_get_target_names(elt))
+        return names
+    return []
+
+
+def _is_var_increment_binop(node: ast.AST, var_name: str) -> bool:
+    """Check if AST expression is `var_name + ...` or `... + var_name`."""
+    return (
+        isinstance(node, ast.BinOp)
+        and isinstance(node.op, ast.Add)
+        and (
+            (isinstance(node.left, ast.Name) and node.left.id == var_name)
+            or (isinstance(node.right, ast.Name) and node.right.id == var_name)
+        )
+    )
+
+
+def _is_var_decrement_binop(node: ast.AST, var_name: str) -> bool:
+    """Check if AST expression is `var_name - ...`."""
+    return (
+        isinstance(node, ast.BinOp)
+        and isinstance(node.op, ast.Sub)
+        and isinstance(node.left, ast.Name)
+        and node.left.id == var_name
+    )
+
+
+def _find_incremented_vars(node: ast.AST) -> set[str]:
+    """Find variables incremented in the AST node."""
+    incremented: set[str] = set()
+
+    class IncrementVisitor(ast.NodeVisitor):
+        def visit_AugAssign(self, aug_node: ast.AugAssign) -> None:
+            if isinstance(aug_node.target, ast.Name) and isinstance(aug_node.op, ast.Add):
+                incremented.add(aug_node.target.id)
+            self.generic_visit(aug_node)
+
+        def visit_Assign(self, assign_node: ast.Assign) -> None:
+            for target in assign_node.targets:
+                if isinstance(target, ast.Name) and _is_var_increment_binop(
+                    assign_node.value, target.id
+                ):
+                    incremented.add(target.id)
+                elif isinstance(target, (ast.Tuple, ast.List)) and isinstance(
+                    assign_node.value, (ast.Tuple, ast.List)
+                ):
+                    for t_elt, v_elt in zip(target.elts, assign_node.value.elts, strict=False):
+                        if isinstance(t_elt, ast.Name) and _is_var_increment_binop(v_elt, t_elt.id):
+                            incremented.add(t_elt.id)
+            self.generic_visit(assign_node)
+
+    IncrementVisitor().visit(node)
+    return incremented
+
+
+def _find_decremented_vars(node: ast.AST) -> set[str]:
+    """Find variables decremented in the AST node."""
+    decremented: set[str] = set()
+
+    class DecrementVisitor(ast.NodeVisitor):
+        def visit_AugAssign(self, aug_node: ast.AugAssign) -> None:
+            if isinstance(aug_node.target, ast.Name) and isinstance(aug_node.op, ast.Sub):
+                decremented.add(aug_node.target.id)
+            self.generic_visit(aug_node)
+
+        def visit_Assign(self, assign_node: ast.Assign) -> None:
+            for target in assign_node.targets:
+                if isinstance(target, ast.Name) and _is_var_decrement_binop(
+                    assign_node.value, target.id
+                ):
+                    decremented.add(target.id)
+                elif isinstance(target, (ast.Tuple, ast.List)) and isinstance(
+                    assign_node.value, (ast.Tuple, ast.List)
+                ):
+                    for t_elt, v_elt in zip(target.elts, assign_node.value.elts, strict=False):
+                        if isinstance(t_elt, ast.Name) and _is_var_decrement_binop(v_elt, t_elt.id):
+                            decremented.add(t_elt.id)
+            self.generic_visit(assign_node)
+
+    DecrementVisitor().visit(node)
+    return decremented
+
+
+def _find_modified_vars(node: ast.AST) -> set[str]:
+    """Find all variable names assigned or modified in the AST node."""
+    modified: set[str] = set()
+
+    class ModifyVisitor(ast.NodeVisitor):
+        def visit_Assign(self, assign_node: ast.Assign) -> None:
+            for target in assign_node.targets:
+                modified.update(_get_target_names(target))
+            self.generic_visit(assign_node)
+
+        def visit_AugAssign(self, aug_node: ast.AugAssign) -> None:
+            if isinstance(aug_node.target, ast.Name):
+                modified.add(aug_node.target.id)
+            self.generic_visit(aug_node)
+
+    ModifyVisitor().visit(node)
+    return modified
+
+
+def _find_outer_incremented_vars(while_node: ast.While) -> set[str]:
+    """Find variables incremented in a while loop body, excluding nested loops."""
+    incremented: set[str] = set()
+
+    class OuterIncrementVisitor(ast.NodeVisitor):
+        def visit_While(self, node: ast.While) -> None:
+            if node is while_node:
+                self.generic_visit(node)
+            # Skip nested while loops
+
+        def visit_For(self, _node: ast.For) -> None:
+            # Skip nested for loops
+            pass
+
+        def visit_AugAssign(self, aug_node: ast.AugAssign) -> None:
+            if isinstance(aug_node.target, ast.Name) and isinstance(aug_node.op, ast.Add):
+                incremented.add(aug_node.target.id)
+            self.generic_visit(aug_node)
+
+        def visit_Assign(self, assign_node: ast.Assign) -> None:
+            for target in assign_node.targets:
+                if isinstance(target, ast.Name) and _is_var_increment_binop(
+                    assign_node.value, target.id
+                ):
+                    incremented.add(target.id)
+            self.generic_visit(assign_node)
+
+    OuterIncrementVisitor().visit(while_node)
+    return incremented
+
+
+def _find_pointer_vars(test_node: ast.AST, known_pointers: set[str]) -> set[str]:
+    """Find pointer variables by expanding known pointers with direct boundary comparisons."""
+    pointers = set(known_pointers)
+    for node in ast.walk(test_node):
+        if isinstance(node, ast.Compare) and isinstance(node.left, ast.Name):
+            for comp in node.comparators:
+                if isinstance(comp, ast.Name):
+                    if node.left.id in known_pointers:
+                        pointers.add(comp.id)
+                    elif comp.id in known_pointers:
+                        pointers.add(node.left.id)
+    return pointers
+
+
+def _is_dynamic_condition(test_node: ast.AST, dynamic_vars: set[str]) -> bool:
+    """Check if loop condition relies on dynamic metrics (collections, counters, etc.)."""
+    for sub in ast.walk(test_node):
+        # 1. Calls to functions/methods (e.g. len(counts), sum(w), is_valid())
+        if isinstance(sub, ast.Call):
+            return True
+        # 2. Subscript access (e.g. counts[char] > 1, freq[s[left]])
+        if isinstance(sub, ast.Subscript):
+            return True
+        # 3. Attribute access (e.g. window.size > k)
+        if isinstance(sub, ast.Attribute):
+            return True
+
+    # 4. Check for dynamic accumulator/metric variables modified in the loop
+    names = {
+        n.id
+        for n in ast.walk(test_node)
+        if isinstance(n, ast.Name) and n.id not in {"True", "False", "None"}
+    }
+    if names.intersection(dynamic_vars):
+        return True
+
+    # 5. Check if sub-elements of BoolOp or UnaryOp are dynamic
+    if isinstance(test_node, ast.BoolOp):
+        return any(_is_dynamic_condition(val, dynamic_vars) for val in test_node.values)
+    if isinstance(test_node, ast.UnaryOp):
+        return _is_dynamic_condition(test_node.operand, dynamic_vars)
+
+    return False
+
+
 class SlidingWindowDetector(BaseDetector):
     """Detector for the Sliding Window algorithmic design pattern."""
 
@@ -30,34 +215,52 @@ class SlidingWindowDetector(BaseDetector):
                 self.evidence: list[str] = []
                 self.confidence = 0.0
 
-            def visit_For(self, node: ast.For) -> None:
-                # 1. Loop variable (end pointer)
-                if not isinstance(node.target, ast.Name):
-                    self.generic_visit(node)
-                    return
+            def _check_nested_while(
+                self,
+                outer_node: ast.For | ast.While,
+                expansion_vars: list[str],
+                body_stmts: list[ast.stmt],
+            ) -> bool:
+                """Check for nested while loops with dynamic shrink condition."""
+                nested_whiles: list[ast.While] = []
+                for stmt in body_stmts:
+                    for n in ast.walk(stmt):
+                        if isinstance(n, ast.While) and n is not outer_node:
+                            nested_whiles.append(n)
 
-                end_var = node.target.id
+                all_modified = _find_modified_vars(outer_node)
 
-                # 2. Identify variables updated in the loop (candidate start pointers)
-                updated_vars: set[str] = set()
+                for while_node in nested_whiles:
+                    inner_incremented = _find_incremented_vars(while_node)
+                    shrink_candidates = [v for v in inner_incremented if v not in expansion_vars]
+                    if not shrink_candidates:
+                        continue
 
-                class UpdateVisitor(ast.NodeVisitor):
-                    def visit_Assign(self, assign_node: ast.Assign) -> None:
-                        for target in assign_node.targets:
-                            if isinstance(target, ast.Name):
-                                updated_vars.add(target.id)
-                        self.generic_visit(assign_node)
+                    for shrink_var in shrink_candidates:
+                        known_pointers = set(expansion_vars) | {shrink_var}
+                        pointer_vars = _find_pointer_vars(while_node.test, known_pointers)
+                        dynamic_vars = all_modified - pointer_vars
+                        if _is_dynamic_condition(while_node.test, dynamic_vars):
+                            exp_var = expansion_vars[0] if expansion_vars else "expansion_pointer"
+                            self.found_sliding_window = True
+                            self.confidence = max(self.confidence, 0.95)
+                            evidence_msg = (
+                                f"Line {outer_node.lineno}: found sliding window loop with "
+                                f"expansion pointer '{exp_var}' and dynamic shrink pointer "
+                                f"'{shrink_var}' (inner while loop at line {while_node.lineno})."
+                            )
+                            if evidence_msg not in self.evidence:
+                                self.evidence.append(evidence_msg)
+                            return True
+                return False
 
-                    def visit_AugAssign(self, aug_node: ast.AugAssign) -> None:
-                        if isinstance(aug_node.target, ast.Name):
-                            updated_vars.add(aug_node.target.id)
-                        self.generic_visit(aug_node)
-
-                UpdateVisitor().visit(node)
-                updated_vars.discard(end_var)
-
-                # 3. Check for window size calculation (end_var - start_var)
-                # or common sequence subscripting by both end_var and start_var
+            def _check_metric_visitor(
+                self,
+                node: ast.For | ast.While,
+                end_var: str,
+                updated_vars: set[str],
+            ) -> None:
+                """Check for subtraction or joint subscripting window metrics."""
                 has_window_metric = False
                 detected_start_var = None
 
@@ -152,12 +355,90 @@ class SlidingWindowDetector(BaseDetector):
 
                 if has_window_metric and detected_start_var:
                     self.found_sliding_window = True
-                    self.confidence = 0.95
-                    self.evidence.append(
+                    self.confidence = max(self.confidence, 0.95)
+                    evidence_msg = (
                         f"Line {node.lineno}: found sliding window loop with "
                         f"expansion pointer '{end_var}' and boundary offset/pointer "
                         f"'{detected_start_var}'."
                     )
+                    if evidence_msg not in self.evidence:
+                        self.evidence.append(evidence_msg)
+
+            def visit_For(self, node: ast.For) -> None:
+                expansion_vars = _get_target_names(node.target)
+                if not expansion_vars:
+                    self.generic_visit(node)
+                    return
+
+                end_var = expansion_vars[0]
+
+                # Check 1: Nested while loop with dynamic shrink condition
+                self._check_nested_while(node, expansion_vars, node.body)
+
+                # Check 2: Subtraction / joint subscripting
+                updated_vars: set[str] = set()
+
+                class UpdateVisitor(ast.NodeVisitor):
+                    def visit_Assign(self, assign_node: ast.Assign) -> None:
+                        for target in assign_node.targets:
+                            if isinstance(target, ast.Name):
+                                updated_vars.add(target.id)
+                        self.generic_visit(assign_node)
+
+                    def visit_AugAssign(self, aug_node: ast.AugAssign) -> None:
+                        if isinstance(aug_node.target, ast.Name):
+                            updated_vars.add(aug_node.target.id)
+                        self.generic_visit(aug_node)
+
+                UpdateVisitor().visit(node)
+                for ev in expansion_vars:
+                    updated_vars.discard(ev)
+
+                # Exclude variables updated in converging nested while loops (e.g. 3Sum)
+                for stmt in node.body:
+                    for n in ast.walk(stmt):
+                        if isinstance(n, ast.While) and _find_decremented_vars(n):
+                            for inc in _find_incremented_vars(n):
+                                updated_vars.discard(inc)
+                            for dec in _find_decremented_vars(n):
+                                updated_vars.discard(dec)
+
+                self._check_metric_visitor(node, end_var, updated_vars)
+
+                self.generic_visit(node)
+
+            def visit_While(self, node: ast.While) -> None:
+                # If this while loop is a converging two-pointer loop, skip treating it as outer
+                if _find_decremented_vars(node):
+                    self.generic_visit(node)
+                    return
+
+                outer_incremented = _find_outer_incremented_vars(node)
+                if outer_incremented:
+                    expansion_vars = list(outer_incremented)
+                    self._check_nested_while(node, expansion_vars, node.body)
+
+                    # Also check subtraction / joint subscripting for while loops if present
+                    end_var = expansion_vars[0]
+                    updated_vars: set[str] = set()
+
+                    class UpdateVisitor(ast.NodeVisitor):
+                        def visit_Assign(self, assign_node: ast.Assign) -> None:
+                            for target in assign_node.targets:
+                                if isinstance(target, ast.Name):
+                                    updated_vars.add(target.id)
+                            self.generic_visit(assign_node)
+
+                        def visit_AugAssign(self, aug_node: ast.AugAssign) -> None:
+                            if isinstance(aug_node.target, ast.Name):
+                                updated_vars.add(aug_node.target.id)
+                            self.generic_visit(aug_node)
+
+                    UpdateVisitor().visit(node)
+                    for ev in expansion_vars:
+                        updated_vars.discard(ev)
+
+                    self._check_metric_visitor(node, end_var, updated_vars)
 
                 self.generic_visit(node)
 
