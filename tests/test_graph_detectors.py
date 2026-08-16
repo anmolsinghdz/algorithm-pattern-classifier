@@ -108,3 +108,120 @@ def test_dfs_detector_negatives() -> None:
     )
     result2 = detector.detect(ast.parse(factorial_code))
     assert result2 is None
+
+
+def test_dfs_nested_helper_tree_traversal() -> None:
+    """Test DFS detector identifies recursive helper functions inside an outer function."""
+    detector = DFSDetector()
+    code = (
+        "def solve(root):\n"
+        "    res = []\n"
+        "    def dfs(node):\n"
+        "        if not node:\n"
+        "            return\n"
+        "        res.append(node.val)\n"
+        "        dfs(node.left)\n"
+        "        dfs(node.right)\n"
+        "    dfs(root)\n"
+        "    return res\n"
+    )
+    result = detector.detect(ast.parse(code))
+    assert result is not None
+    assert result.confidence >= 0.9
+    assert any("solve" in e and "dfs" in e for e in result.evidence)
+    assert any("root" in e for e in result.evidence)
+
+
+def test_dfs_nested_helper_grid_islands() -> None:
+    """Test DFS detector identifies nested helper for multi-source grid traversal."""
+    detector = DFSDetector()
+    code = (
+        "def num_islands(grid):\n"
+        "    def dfs(r, c):\n"
+        "        if r < 0 or c < 0 or r >= len(grid) or c >= len(grid[0]) or grid[r][c] != '1':\n"
+        "            return\n"
+        "        grid[r][c] = '0'\n"
+        "        dfs(r + 1, c)\n"
+        "        dfs(r - 1, c)\n"
+        "        dfs(r, c + 1)\n"
+        "        dfs(r, c - 1)\n"
+        "    for i in range(len(grid)):\n"
+        "        for j in range(len(grid[0])):\n"
+        "            if grid[i][j] == '1':\n"
+        "                dfs(i, j)\n"
+    )
+    result = detector.detect(ast.parse(code))
+    assert result is not None
+    assert result.confidence >= 0.9
+    assert any("num_islands" in e for e in result.evidence)
+
+
+def test_dfs_nested_helper_in_class_method() -> None:
+    """Test DFS detector identifies nested recursive helper inside class method."""
+    detector = DFSDetector()
+    code = (
+        "class Solution:\n"
+        "    def maxDepth(self, root):\n"
+        "        def dfs(node):\n"
+        "            if not node:\n"
+        "                return 0\n"
+        "            return 1 + max(dfs(node.left), dfs(node.right))\n"
+        "        return dfs(root)\n"
+    )
+    result = detector.detect(ast.parse(code))
+    assert result is not None
+    assert result.confidence >= 0.9
+
+
+def test_bfs_nested_helper_tree_level_order() -> None:
+    """Test BFS detector identifies nested helper queue traversal."""
+    detector = BFSDetector()
+    code = (
+        "def level_order(root):\n"
+        "    def bfs(start_node):\n"
+        "        if not start_node:\n"
+        "            return []\n"
+        "        queue = collections.deque([start_node])\n"
+        "        levels = []\n"
+        "        while queue:\n"
+        "            node = queue.popleft()\n"
+        "            levels.append(node.val)\n"
+        "            if node.left:\n"
+        "                queue.append(node.left)\n"
+        "            if node.right:\n"
+        "                queue.append(node.right)\n"
+        "        return levels\n"
+        "    return bfs(root)\n"
+    )
+    result = detector.detect(ast.parse(code))
+    assert result is not None
+    assert result.confidence >= 0.9
+    assert any("level_order" in e and "bfs" in e for e in result.evidence)
+    assert any("root" in e for e in result.evidence)
+
+
+def test_bfs_nested_helper_shortest_path() -> None:
+    """Test BFS detector identifies nested helper list queue for shortest path."""
+    detector = BFSDetector()
+    code = (
+        "def shortest_path(graph, start, target):\n"
+        "    def bfs(source):\n"
+        "        visited = {source}\n"
+        "        queue = [source]\n"
+        "        dist = 0\n"
+        "        while queue:\n"
+        "            curr = queue.pop(0)\n"
+        "            if curr == target:\n"
+        "                return dist\n"
+        "            for neighbor in graph[curr]:\n"
+        "                if neighbor not in visited:\n"
+        "                    visited.add(neighbor)\n"
+        "                    queue.append(neighbor)\n"
+        "            dist += 1\n"
+        "        return -1\n"
+        "    return bfs(start)\n"
+    )
+    result = detector.detect(ast.parse(code))
+    assert result is not None
+    assert result.confidence >= 0.9
+    assert any("shortest_path" in e for e in result.evidence)
